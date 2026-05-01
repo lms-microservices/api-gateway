@@ -4,29 +4,43 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 @Component
 public class AuthorizationRuleService {
     private final List<AccessRule> rules = List.of(
-            rule(HttpMethod.GET, "/api/users", Set.of("ADMIN"), false),
-            rule(HttpMethod.GET, "^/api/users/email/[^/]+$", Set.of("ADMIN"), false),
-            rule(HttpMethod.PUT, "^/api/users/([^/]+)/approve-instructor$", Set.of("ADMIN"), false),
-            rule(HttpMethod.GET, "^/api/users/([^/]+)$", Set.of("ADMIN"), true), // true = allowSelf
-            rule(HttpMethod.PUT, "^/api/users/([^/]+)$", Set.of("ADMIN"), true)
+            rule(HttpMethod.GET, "/api/auth/roles", "roles:manage", false),
+            rule(HttpMethod.POST, "/api/auth/roles", "roles:manage", false),
+            rule(HttpMethod.GET, "^/api/auth/roles/permissions$", "roles:manage", false),
+            rule(HttpMethod.POST, "^/api/auth/roles/permissions$", "roles:manage", false),
+            rule(HttpMethod.GET, "^/api/auth/roles/[^/]+$", "roles:manage", false),
+            rule(HttpMethod.DELETE, "^/api/auth/roles/[^/]+$", "roles:manage", false),
+            rule(HttpMethod.POST, "^/api/auth/roles/[^/]+/permissions$", "roles:manage", false),
+            rule(HttpMethod.DELETE, "^/api/auth/roles/[^/]+/permissions/[^/]+$", "roles:manage", false),
+            rule(HttpMethod.PUT, "^/api/auth/users/[^/]+/role$", "roles:manage", false),
+            rule(HttpMethod.DELETE, "^/api/auth/users/([^/]+)$", "users:delete", false),
+
+            rule(HttpMethod.GET, "/api/users", "users:read", false),
+            rule(HttpMethod.GET, "^/api/users/email/[^/]+$", "users:read", false),
+            rule(HttpMethod.PUT, "^/api/users/([^/]+)/approve-instructor$", "users:update", false),
+            rule(HttpMethod.GET, "^/api/users/([^/]+)$", "users:read", true),
+            rule(HttpMethod.PUT, "^/api/users/([^/]+)$", "users:update", true),
+
+            rule(HttpMethod.POST, "^/api/courses.*$", "courses:create", false),
+            rule(HttpMethod.PUT, "^/api/courses.*$", "courses:update", false),
+            rule(HttpMethod.DELETE, "^/api/courses.*$", "courses:update", false)
     );
 
-    public boolean isAuthorized(String path, HttpMethod method, String userId, String role) {
+    public boolean isAuthorized(String path, HttpMethod method, String userId, List<String> permissions) {
         return rules.stream()
                 .filter(r -> r.matches(path, method))
                 .findFirst()
-                .map(r -> hasRole(r, role) || isSelf(r, path, userId))
+                .map(r -> hasPermission(r, permissions) || isSelf(r, path, userId))
                 .orElse(true);
     }
 
-    private boolean hasRole(AccessRule rule, String role) {
-        return role != null && rule.allowedRoles.contains(role);
+    private boolean hasPermission(AccessRule rule, List<String> permissions) {
+        return rule.requiredPermission == null || permissions.contains(rule.requiredPermission);
     }
 
     private boolean isSelf(AccessRule rule, String path, String userId) {
@@ -37,12 +51,12 @@ public class AuthorizationRuleService {
     }
 
     // Helper to create rules quickly
-    private static AccessRule rule(HttpMethod m, String p, Set<String> r, boolean s) {
+    private static AccessRule rule(HttpMethod m, String p, String r, boolean s) {
         String regex = p.startsWith("^") ? p : "^" + Pattern.quote(p) + "$";
         return new AccessRule(m, Pattern.compile(regex), r, s);
     }
 
-    private record AccessRule(HttpMethod method, Pattern pattern, Set<String> allowedRoles, boolean allowSelf) {
+    private record AccessRule(HttpMethod method, Pattern pattern, String requiredPermission, boolean allowSelf) {
         boolean matches(String p, HttpMethod m) {
             return method == m && pattern.matcher(p).matches();
         }

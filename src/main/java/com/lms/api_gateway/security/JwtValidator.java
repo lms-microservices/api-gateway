@@ -5,6 +5,8 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class JwtValidator {
 
@@ -31,5 +33,18 @@ public class JwtValidator {
         }
 
         return null;
+    }
+
+    public List<String> getStringListClaim(Claims claims, String claimName) {
+        Object value = claims.get(claimName);
+
+        if (value instanceof List<?> list) {
+            return list.stream()
+                    .filter(String.class::isInstance)
+                    .map(String.class::cast)
+                    .toList();
+        }
+
+        return List.of();
     }
 }

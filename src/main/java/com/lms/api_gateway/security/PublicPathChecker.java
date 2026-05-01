@@ -14,8 +14,8 @@ public class PublicPathChecker {
 
     public boolean isPublic(String path, HttpMethod method) {
         boolean isConfiguredPublic = publicPaths.stream()
-                .map(this::normalizePublicPathPattern)
-                .anyMatch(path::startsWith);
+                .map(String::trim)
+                .anyMatch(publicPath -> matches(publicPath, path));
 
         if (isConfiguredPublic) {
             return true;
@@ -24,7 +24,12 @@ public class PublicPathChecker {
         return path.startsWith("/api/courses") && HttpMethod.GET.equals(method);
     }
 
-    private String normalizePublicPathPattern(String publicPath) {
-        return publicPath.replace("/**", "").trim();
+    private boolean matches(String publicPath, String path) {
+        if (publicPath.endsWith("/**")) {
+            String prefix = publicPath.substring(0, publicPath.length() - 3);
+            return path.equals(prefix) || path.startsWith(prefix + "/");
+        }
+
+        return path.equals(publicPath);
     }
 }

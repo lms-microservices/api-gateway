@@ -14,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Config> {
 
@@ -58,13 +60,14 @@ public class JwtAuthFilter extends AbstractGatewayFilterFactory<JwtAuthFilter.Co
                 String userId = jwtValidator.getClaim(claims, "userId");
                 String userEmail = jwtValidator.getClaim(claims, "email");
                 String userRole = jwtValidator.getClaim(claims, "role");
+                List<String> permissions = jwtValidator.getStringListClaim(claims, "permissions");
 
-                if (!authorizationRuleService.isAuthorized(path, method, userId, userRole)) {
+                if (!authorizationRuleService.isAuthorized(path, method, userId, permissions)) {
                     exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
                     return exchange.getResponse().setComplete();
                 }
 
-                ServerHttpRequest mutatedRequest = requestMutator.addUserHeaders(request, userId, userEmail, userRole);
+                ServerHttpRequest mutatedRequest = requestMutator.addUserHeaders(request, userId, userEmail, userRole, permissions);
                 return chain.filter(exchange.mutate().request(mutatedRequest).build());
 
             } catch (ExpiredJwtException e) {
