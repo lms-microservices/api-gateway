@@ -7,10 +7,13 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class PublicPathChecker {
+public class PublicPathMatcher {
 
-    @Value("${jwt.public-paths}")
-    private List<String> publicPaths;
+    private final List<String> publicPaths;
+
+    public PublicPathMatcher(@Value("${jwt.public-paths}") List<String> publicPaths) {
+        this.publicPaths = publicPaths;
+    }
 
     public boolean isPublic(String path, HttpMethod method) {
         boolean isConfiguredPublic = publicPaths.stream()

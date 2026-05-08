@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 @Component
-public class AuthorizationRuleService {
+public class AccessRuleEngine {
     private final List<AccessRule> rules = List.of(
             rule(HttpMethod.GET, "/api/auth/roles", "roles:manage", false),
             rule(HttpMethod.POST, "/api/auth/roles", "roles:manage", false),
