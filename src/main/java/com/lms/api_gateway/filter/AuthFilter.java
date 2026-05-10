@@ -7,6 +7,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 @Component
 public class AuthFilter extends AbstractGatewayFilterFactory<Object> {
@@ -36,7 +37,24 @@ public class AuthFilter extends AbstractGatewayFilterFactory<Object> {
             String path = request.getURI().getPath();
             HttpMethod method = request.getMethod();
 
+            if (method == HttpMethod.OPTIONS) {
+                return chain.filter(exchange);
+            }
+
             if (publicPathMatcher.isPublic(path, method)) {
+                String token = jwtTokenExtractor.extract(request);
+                if (token != null) {
+                    return authClient.validate(token)
+                            .map(response -> {
+                                if (response.valid()) {
+                                    return userHeaderInjector.addUserHeaders(request,
+                                            response.userId(), response.email(), response.role(), response.permissions());
+                                }
+                                return request;
+                            })
+                            .onErrorResume(e -> Mono.just(request))
+                            .flatMap(mutatedRequest -> chain.filter(exchange.mutate().request(mutatedRequest).build()));
+                }
                 return chain.filter(exchange);
             }
 
@@ -69,7 +87,7 @@ public class AuthFilter extends AbstractGatewayFilterFactory<Object> {
                         return chain.filter(exchange.mutate().request(mutatedRequest).build());
                     })
                     .onErrorResume(e -> {
-                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                        exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
                         return exchange.getResponse().setComplete();
                     });
         };

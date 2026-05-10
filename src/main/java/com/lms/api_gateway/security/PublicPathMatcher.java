@@ -24,7 +24,30 @@ public class PublicPathMatcher {
             return true;
         }
 
-        return path.startsWith("/api/courses") && HttpMethod.GET.equals(method);
+        boolean isPublicCourseGet = HttpMethod.GET.equals(method)
+                && (path.equals("/api/courses")
+                    || path.equals("/api/courses/search")
+                    || path.matches("/api/courses/\\d+"));
+        if (isPublicCourseGet) {
+            return true;
+        }
+
+        boolean isPublicReviewGet = HttpMethod.GET.equals(method)
+                && (path.equals("/api/reviews/courses")
+                    || path.matches("/api/reviews/courses/\\d+")
+                    || path.matches("/api/reviews/courses/\\d+/summary"));
+        if (isPublicReviewGet) {
+            return true;
+        }
+
+        boolean isPublicNotificationGet = HttpMethod.GET.equals(method)
+                && (path.equals("/api/notifications")
+                    || path.equals("/api/notifications/unread-count"));
+        if (isPublicNotificationGet) {
+            return true;
+        }
+
+        return false;
     }
 
     private boolean matches(String publicPath, String path) {

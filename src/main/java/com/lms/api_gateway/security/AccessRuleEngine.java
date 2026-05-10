@@ -26,9 +26,17 @@ public class AccessRuleEngine {
             rule(HttpMethod.GET, "^/api/users/([^/]+)$", "users:read", true),
             rule(HttpMethod.PUT, "^/api/users/([^/]+)$", "users:update", true),
 
-            rule(HttpMethod.POST, "^/api/courses.*$", "courses:create", false),
-            rule(HttpMethod.PUT, "^/api/courses.*$", "courses:update", false),
-            rule(HttpMethod.DELETE, "^/api/courses.*$", "courses:update", false)
+            rule(HttpMethod.POST, "^/api/courses$", "courses:create", false),
+            rule(HttpMethod.POST, "^/api/courses/[^/]+/enroll$", null, false),
+            rule(HttpMethod.POST, "^/api/courses/[^/]+/lessons$", "courses:update", false),
+            rule(HttpMethod.PUT, "^/api/courses/[^/]+$", "courses:update", false),
+            rule(HttpMethod.PUT, "^/api/courses/[^/]+/publish$", "courses:update", false),
+            rule(HttpMethod.PUT, "^/api/courses/[^/]+/lessons/[^/]+$", "courses:update", false),
+            rule(HttpMethod.PUT, "^/api/courses/[^/]+/lessons/[^/]+/complete$", null, false),
+            rule(HttpMethod.DELETE, "^/api/courses/[^/]+/lessons/[^/]+$", "courses:update", false),
+            rule(HttpMethod.DELETE, "^/api/courses/[^/]+$", "courses:update", false),
+
+            rule(HttpMethod.POST, "^/api/payments/pay$", null, false)
     );
 
     public boolean isAuthorized(String path, HttpMethod method, String userId, List<String> permissions) {
